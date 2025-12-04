@@ -1,0 +1,140 @@
+{
+  "version": 3,
+  "targets": {
+    "net9.0-windows7.0": {
+      "fernandreu.ScintillaNET/4.2.0": {
+        "type": "package",
+        "compile": {
+          "lib/net6.0-windows7.0/ScintillaNET.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net6.0-windows7.0/ScintillaNET.dll": {
+            "related": ".xml"
+          }
+        },
+        "frameworkReferences": [
+          "Microsoft.WindowsDesktop.App.WindowsForms"
+        ]
+      },
+      "KenshiCore/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v9.0",
+        "dependencies": {
+          "fernandreu.ScintillaNET": "4.2.0"
+        },
+        "compile": {
+          "bin/placeholder/KenshiCore.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/KenshiCore.dll": {}
+        },
+        "frameworkReferences": [
+          "Microsoft.WindowsDesktop.App.WindowsForms"
+        ]
+      }
+    }
+  },
+  "libraries": {
+    "fernandreu.ScintillaNET/4.2.0": {
+      "sha512": "68J5Asevo2rX6ImPgajNSh1ZXGO6DKV56eyOXZsdr6uWmt6RZKCGpk29Cd6SPjk0rqzes4kJxWVegZ0qi/ZQDw==",
+      "type": "package",
+      "path": "fernandreu.scintillanet/4.2.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "LICENSE",
+        "fernandreu.scintillanet.4.2.0.nupkg.sha512",
+        "fernandreu.scintillanet.nuspec",
+        "lib/net471/ScintillaNET.dll",
+        "lib/net471/ScintillaNET.xml",
+        "lib/net6.0-windows7.0/ScintillaNET.dll",
+        "lib/net6.0-windows7.0/ScintillaNET.xml"
+      ]
+    },
+    "KenshiCore/1.0.0": {
+      "type": "project",
+      "path": "../KenshiCore/KenshiCore.csproj",
+      "msbuildProject": "../KenshiCore/KenshiCore.csproj"
+    }
+  },
+  "projectFileDependencyGroups": {
+    "net9.0-windows7.0": [
+      "KenshiCore >= 1.0.0"
+    ]
+  },
+  "packageFolders": {
+    "C:\\Users\\davba\\.nuget\\packages\\": {},
+    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
+  },
+  "project": {
+    "version": "1.0.0",
+    "restore": {
+      "projectUniqueName": "C:\\Users\\davba\\OneDrive\\Escritorio\\net_misc\\KenshiProjects\\KenshiFixer\\KenshiFixer.csproj",
+      "projectName": "KenshiFixer",
+      "projectPath": "C:\\Users\\davba\\OneDrive\\Escritorio\\net_misc\\KenshiProjects\\KenshiFixer\\KenshiFixer.csproj",
+      "packagesPath": "C:\\Users\\davba\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\davba\\OneDrive\\Escritorio\\net_misc\\KenshiProjects\\KenshiFixer\\obj\\",
+      "projectStyle": "PackageReference",
+      "fallbackFolders": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+      ],
+      "configFilePaths": [
+        "C:\\Users\\davba\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+      ],
+      "originalTargetFrameworks": [
+        "net9.0-windows"
+      ],
+      "sources": {
+        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+        "https://api.nuget.org/v3/index.json": {}
+      },
+      "frameworks": {
+        "net9.0-windows7.0": {
+          "targetAlias": "net9.0-windows",
+          "projectReferences": {
+            "C:\\Users\\davba\\OneDrive\\Escritorio\\net_misc\\KenshiProjects\\KenshiCore\\KenshiCore.csproj": {
+              "projectPath": "C:\\Users\\davba\\OneDrive\\Escritorio\\net_misc\\KenshiProjects\\KenshiCore\\KenshiCore.csproj"
+            }
+          }
+        }
+      },
+      "warningProperties": {
+        "warnAsError": [
+          "NU1605"
+        ]
+      },
+      "restoreAuditProperties": {
+        "enableAudit": "true",
+        "auditLevel": "low",
+        "auditMode": "direct"
+      },
+      "SdkAnalysisLevel": "9.0.300"
+    },
+    "frameworks": {
+      "net9.0-windows7.0": {
+        "targetAlias": "net9.0-windows",
+        "imports": [
+          "net461",
+          "net462",
+          "net47",
+          "net471",
+          "net472",
+          "net48",
+          "net481"
+        ],
+        "assetTargetFallback": true,
+        "warn": true,
+        "frameworkReferences": {
+          "Microsoft.NETCore.App": {
+            "privateAssets": "all"
+          }
+        },
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.308/PortableRuntimeIdentifierGraph.json"
+      }
+    }
+  }
+}

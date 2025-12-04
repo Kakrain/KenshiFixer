@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "QhoAOF7xfV8=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\davba\\OneDrive\\Escritorio\\net_misc\\KenshiProjects\\KenshiFixer\\KenshiFixer.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\davba\\.nuget\\packages\\fernandreu.scintillanet\\4.2.0\\fernandreu.scintillanet.4.2.0.nupkg.sha512"
+  ],
+  "logs": []
+}
