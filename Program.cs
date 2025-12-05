@@ -1,4 +1,13 @@
 ﻿using KenshiCore;
+using KenshiFixer.Forms;
 
-// See https://aka.ms/new-console-template for more information
-
+namespace KenshiFixer;
+static class Program
+{
+    [STAThread]
+    static void Main()
+    {
+        ApplicationConfiguration.Initialize();
+        Application.Run(new MainForm());
+    }
+}

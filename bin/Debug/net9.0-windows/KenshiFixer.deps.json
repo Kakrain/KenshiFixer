@@ -8,7 +8,8 @@
     ".NETCoreApp,Version=v9.0": {
       "KenshiFixer/1.0.0": {
         "dependencies": {
-          "KenshiCore": "1.0.0"
+          "KenshiCore": "1.0.0",
+          "fernandreu.ScintillaNET": "4.2.0"
         },
         "runtime": {
           "KenshiFixer.dll": {}

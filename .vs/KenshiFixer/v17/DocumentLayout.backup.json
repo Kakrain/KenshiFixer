@@ -3,8 +3,24 @@
   "WorkspaceRootPath": "C:\\Users\\davba\\OneDrive\\Escritorio\\net_misc\\KenshiProjects\\KenshiFixer\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\davba\\OneDrive\\Escritorio\\net_misc\\KenshiProjects\\KenshiFixer\\Program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:Program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{5241DCD4-F911-EAF9-87E6-72ED0AAD2C39}|KenshiFixer.csproj|c:\\users\\davba\\onedrive\\escritorio\\net_misc\\kenshiprojects\\kenshifixer\\forms\\mainform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{5241DCD4-F911-EAF9-87E6-72ED0AAD2C39}|KenshiFixer.csproj|solutionrelative:forms\\mainform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{15D92D6D-B1E5-EDF8-8BB2-8CE80D57F3EA}|..\\KenshiCore\\KenshiCore.csproj|c:\\users\\davba\\onedrive\\escritorio\\net_misc\\kenshiprojects\\kenshicore\\protomainform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{15D92D6D-B1E5-EDF8-8BB2-8CE80D57F3EA}|..\\KenshiCore\\KenshiCore.csproj|c:\\users\\davba\\onedrive\\escritorio\\net_misc\\kenshiprojects\\kenshicore\\reverseengineer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{15D92D6D-B1E5-EDF8-8BB2-8CE80D57F3EA}|..\\KenshiCore\\KenshiCore.csproj|c:\\users\\davba\\onedrive\\escritorio\\net_misc\\kenshiprojects\\kenshicore\\generallogform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{15D92D6D-B1E5-EDF8-8BB2-8CE80D57F3EA}|..\\KenshiCore\\KenshiCore.csproj|c:\\users\\davba\\onedrive\\escritorio\\net_misc\\kenshiprojects\\kenshicore\\modmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{5241DCD4-F911-EAF9-87E6-72ED0AAD2C39}|KenshiFixer.csproj|c:\\users\\davba\\onedrive\\escritorio\\net_misc\\kenshiprojects\\kenshifixer\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{5241DCD4-F911-EAF9-87E6-72ED0AAD2C39}|KenshiFixer.csproj|solutionrelative:program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -14,20 +30,81 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 0,
+          "SelectedChildIndex": 3,
           "Children": [
             {
               "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "GeneralLogForm.cs",
+              "DocumentMoniker": "C:\\Users\\davba\\OneDrive\\Escritorio\\net_misc\\KenshiProjects\\KenshiCore\\GeneralLogForm.cs",
+              "RelativeDocumentMoniker": "..\\KenshiCore\\GeneralLogForm.cs",
+              "ToolTip": "C:\\Users\\davba\\OneDrive\\Escritorio\\net_misc\\KenshiProjects\\KenshiCore\\GeneralLogForm.cs",
+              "RelativeToolTip": "..\\KenshiCore\\GeneralLogForm.cs",
+              "ViewState": "AgIAAAIAAAAAAAAAAAAAAGMAAAAOAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-05T01:30:34.899Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "ProtoMainForm.cs",
+              "DocumentMoniker": "C:\\Users\\davba\\OneDrive\\Escritorio\\net_misc\\KenshiProjects\\KenshiCore\\ProtoMainForm.cs",
+              "RelativeDocumentMoniker": "..\\KenshiCore\\ProtoMainForm.cs",
+              "ToolTip": "C:\\Users\\davba\\OneDrive\\Escritorio\\net_misc\\KenshiProjects\\KenshiCore\\ProtoMainForm.cs",
+              "RelativeToolTip": "..\\KenshiCore\\ProtoMainForm.cs",
+              "ViewState": "AgIAAGsCAAAAAAAAAAAjwHgCAAAkAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-05T00:39:39.694Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "ReverseEngineer.cs",
+              "DocumentMoniker": "C:\\Users\\davba\\OneDrive\\Escritorio\\net_misc\\KenshiProjects\\KenshiCore\\ReverseEngineer.cs",
+              "RelativeDocumentMoniker": "..\\KenshiCore\\ReverseEngineer.cs",
+              "ToolTip": "C:\\Users\\davba\\OneDrive\\Escritorio\\net_misc\\KenshiProjects\\KenshiCore\\ReverseEngineer.cs",
+              "RelativeToolTip": "..\\KenshiCore\\ReverseEngineer.cs",
+              "ViewState": "AgIAAGoDAAAAAAAAAAAuwGkDAAAaAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-04T22:21:12.122Z"
+            },
+            {
+              "$type": "Document",
               "DocumentIndex": 0,
+              "Title": "MainForm.cs",
+              "DocumentMoniker": "C:\\Users\\davba\\OneDrive\\Escritorio\\net_misc\\KenshiProjects\\KenshiFixer\\Forms\\MainForm.cs",
+              "RelativeDocumentMoniker": "Forms\\MainForm.cs",
+              "ToolTip": "C:\\Users\\davba\\OneDrive\\Escritorio\\net_misc\\KenshiProjects\\KenshiFixer\\Forms\\MainForm.cs",
+              "RelativeToolTip": "Forms\\MainForm.cs",
+              "ViewState": "AgIAAD8AAAAAAAAAAAAEwEwAAABKAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-04T20:48:52.533Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "ModManager.cs",
+              "DocumentMoniker": "C:\\Users\\davba\\OneDrive\\Escritorio\\net_misc\\KenshiProjects\\KenshiCore\\ModManager.cs",
+              "RelativeDocumentMoniker": "..\\KenshiCore\\ModManager.cs",
+              "ToolTip": "C:\\Users\\davba\\OneDrive\\Escritorio\\net_misc\\KenshiProjects\\KenshiCore\\ModManager.cs",
+              "RelativeToolTip": "..\\KenshiCore\\ModManager.cs",
+              "ViewState": "AgIAAA4AAAAAAAAAAAAAwBEAAAAuAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-05T05:18:58.56Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
               "Title": "Program.cs",
               "DocumentMoniker": "C:\\Users\\davba\\OneDrive\\Escritorio\\net_misc\\KenshiProjects\\KenshiFixer\\Program.cs",
               "RelativeDocumentMoniker": "Program.cs",
-              "ToolTip": "C:\\Users\\davba\\OneDrive\\Escritorio\\net_misc\\KenshiProjects\\KenshiFixer\\Program.cs*",
-              "RelativeToolTip": "Program.cs*",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAA==",
+              "ToolTip": "C:\\Users\\davba\\OneDrive\\Escritorio\\net_misc\\KenshiProjects\\KenshiFixer\\Program.cs",
+              "RelativeToolTip": "Program.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAuwAQAAAANAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-12-04T20:27:07.519Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-12-04T20:28:11.353Z"
             }
           ]
         }
