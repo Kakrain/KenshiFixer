@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("KenshiFixer")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+34b53a3cb6f12e9d77d2b70cd3871714d8796c55")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+131668bd37e2a577219aa25eac1a55058f189e4d")]
 [assembly: System.Reflection.AssemblyProductAttribute("KenshiFixer")]
 [assembly: System.Reflection.AssemblyTitleAttribute("KenshiFixer")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

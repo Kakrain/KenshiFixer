@@ -23,7 +23,13 @@ namespace KenshiFixer.Forms
 
     public class MainForm : ProtoMainForm
     {
-        private Dictionary<ModItem, ReverseEngineer> ReverseEngineersCache = new();
+        private ReverseEngineerRepository RERepository = ReverseEngineerRepository.Instance;
+        private Dictionary<(string, string), string> can_crash_registry = new();
+        private Dictionary<string,string> fallbacks_sids = new Dictionary<string,string>();
+        private Dictionary<string, ModRecord> replacements = new Dictionary<string, ModRecord>();
+        private ReverseEngineer RE_fixed=new ReverseEngineer();
+
+        public ReverseEngineer fixEngineer;
         private HashSet<string> hidden_dependencies = new HashSet<string>();
         private HashSet<string> broken_paths_mods = new HashSet<string>();
         public MainForm()
@@ -36,15 +42,26 @@ namespace KenshiFixer.Forms
 
             AddColumn("Status", mod => getModStatus(mod), 150);
             AddButton("Diagnose FilePaths", DiagnosePathsClick, mod => true);
+            AddButton("Generate Fix", GenerateFix, mod => true);
             shouldResetLog = false;
+            fixEngineer = new ReverseEngineer();
+
+            can_crash_registry[("SQUAD_TEMPLATE", "faction")] = "FACTION";
+            can_crash_registry[("SQUAD_TEMPLATE", "leader")] = "CHARACTER";
+            can_crash_registry[("SQUAD_TEMPLATE", "squad")] = "CHARACTER";
+            can_crash_registry[("SQUAD_TEMPLATE", "squad2")] = "CHARACTER";
+            can_crash_registry[("SQUAD_TEMPLATE", "animals")] = "ANIMAL_CHARACTER";
+            can_crash_registry[("SQUAD_TEMPLATE", "animals2")] = "ANIMAL_CHARACTER";
             //modsListView.SelectedIndexChanged += Mainform_SelectedIndexChanged;
+
+            fallbacks_sids["FACTION"] = "10--KenshiFixer_Fix-.mod";
+            fallbacks_sids["CHARACTER"] = "11--KenshiFixer_Fix-.mod";
+            fallbacks_sids["ANIMAL_CHARACTER"] = "12--KenshiFixer_Fix-.mod";
         }
         protected override void OnLoad(EventArgs e)
         {
             base.OnLoad(e);
             ShowLogButton.Enabled = true;
-            //ModsListView_SelectedIndexChanged(null,null);
-            //modsListView.SelectedIndexChanged(null,null);
         }
         private string getModStatus(ModItem mod)
         {
@@ -52,18 +69,95 @@ namespace KenshiFixer.Forms
                 return "broken_path";
             return "ok";
         }
+        private void LoadTemplate()
+        {
+            RE_fixed = new ReverseEngineer();
+            string exeDir = AppContext.BaseDirectory;
+            string fixTemplatePath = Path.Combine(
+                exeDir,
+                "FixTemplates",
+                "-KenshiFixer_Fix-"
+            );
+            RE_fixed.LoadModFile(fixTemplatePath);
+        }
+        private void GenerateFix(object? sender, EventArgs e)
+        {
+            LoadTemplate();
+            foreach ((string,string) elem in can_crash_registry.Keys)
+            {
+                string category = elem.Item2;
+                IReadOnlyDictionary<string,ModRecord> main_records = RERepository.GetAllRecordsMerged(elem.Item1);
+                IReadOnlyDictionary<string,ModRecord> XD_records = RERepository.GetAllRecordsMerged(can_crash_registry[elem]);
+                foreach (var record in main_records.Values)
+                {
+                    Dictionary<string, int[]>? XDCategory = record.GetExtraData(category);
+                    if (XDCategory != null)
+                    {
+                        foreach (string sid in XDCategory.Keys)
+                        {
+                            if (!XD_records.ContainsKey(sid))
+                            {
+                                string fallback_sid = fallbacks_sids[can_crash_registry[elem]];
+                                ModRecord fallbackRecord = RE_fixed.searchModRecordByStringId(fallback_sid)!;
+                                ModRecord fixed_record=RE_fixed.EnsureRecordExists(record);
+                                fixed_record.DeleteExtraData(category,sid);
+
+                                replacements.TryGetValue(sid, out ModRecord? cloned);
+                                if (cloned == null)
+                                {
+                                    cloned = RE_fixed.CloneRecord(fallbackRecord, 1)[0];
+                                    cloned.Name = "restored_" + sid + "_fallback";
+                                    replacements[sid]= cloned;
+                                }
+                                RE_fixed.AddExtraData(fixed_record, cloned, category, XDCategory[sid]);
+                            }
+                        }
+
+                    }
+                }
+            }
+
+            foreach(string id in fallbacks_sids.Values)
+            {
+                RE_fixed.deleteRecord(RE_fixed.searchModRecordByStringId(id)!);
+            }
+            SaveFixMod();
+        }
+        public void SaveFixMod()
+        {
+            string modsRoot = ModManager.gamedirModsPath
+                ?? throw new InvalidOperationException("Mods directory not set");
+
+            string fixFolder = Path.Combine(modsRoot, "-KenshiFixer_Fix-");
+            string fixModFile = Path.Combine(fixFolder, "-KenshiFixer_Fix-.mod");
+
+            Directory.CreateDirectory(fixFolder); // safe even if it exists
+
+            RE_fixed.SaveModFile(fixModFile);
+            CoreUtils.Print("-KenshiFixer_Fix- saved!",1);
+        }
         private void DiagnosePathsClick(object? sender, EventArgs e)
         {
-            
             var logform = getLogForm();
             hidden_dependencies = new HashSet<string>();
             broken_paths_mods= new HashSet<string>();
             int ocurrences = 0;
             StringBuilder sb= new StringBuilder();
-            foreach(ModItem mod in ReverseEngineersCache.Keys)
+
+
+
+            //foreach(ModItem mod in ReverseEngineersCache.Keys)
+            foreach (var kvp in mergedMods)
             {
-                ReverseEngineer re= ReverseEngineersCache[mod];
-                string? modpath = mod.getModFilePath()!;
+                string modName = kvp.Key;
+                ModItem mod = kvp.Value;
+                if (!RERepository.TryGet(modName, out var re) || re == null)
+                    continue;
+                string? modpath = mod.getModFilePath();
+                if (string.IsNullOrEmpty(modpath))
+                    continue;
+                //ReverseEngineer re= ReverseEngineersCache[mod];
+                //string? modpath = mod.getModFilePath()!;
 
                 List<string> brokenForThisMod = new List<string>();
                 foreach (ModRecord record in re.modData.Records!)
@@ -156,7 +250,7 @@ namespace KenshiFixer.Forms
                     continue;
                 }
                 re.LoadModFile(realmodpath);
-                ReverseEngineersCache[mod.Value] = re;
+                RERepository.AddOrUpdate(mod.Key, re);
                 i++;
                 ReportProgress(i, $"Engineered mod:{i}");
             }

@@ -1,10 +1,11 @@
 {
   "version": 2,
-  "dgSpecHash": "nJNuiioCZpE=",
+  "dgSpecHash": "AdSA+7Og/1Q=",
   "success": true,
   "projectFilePath": "C:\\Users\\davba\\OneDrive\\Escritorio\\net_misc\\KenshiProjects\\KenshiFixer\\KenshiFixer.csproj",
   "expectedPackageFiles": [
-    "C:\\Users\\davba\\.nuget\\packages\\fernandreu.scintillanet\\4.2.0\\fernandreu.scintillanet.4.2.0.nupkg.sha512"
+    "C:\\Users\\davba\\.nuget\\packages\\fernandreu.scintillanet\\4.2.0\\fernandreu.scintillanet.4.2.0.nupkg.sha512",
+    "C:\\Users\\davba\\.nuget\\packages\\microsoft.net.illink.tasks\\9.0.11\\microsoft.net.illink.tasks.9.0.11.nupkg.sha512"
   ],
   "logs": []
 }
