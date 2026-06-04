@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\davba\\OneDrive\\Escritorio\\net_misc\\KenshiProjects\\KenshiFixer\\KenshiFixer.csproj": {}
+    "C:\\GithubProjects\\KenshiProjects\\KenshiFixer\\KenshiFixer.csproj": {}
   },
   "projects": {
-    "C:\\Users\\davba\\OneDrive\\Escritorio\\net_misc\\KenshiProjects\\KenshiCore\\KenshiCore.csproj": {
+    "C:\\GithubProjects\\KenshiProjects\\KenshiCore\\KenshiCore.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\davba\\OneDrive\\Escritorio\\net_misc\\KenshiProjects\\KenshiCore\\KenshiCore.csproj",
+        "projectUniqueName": "C:\\GithubProjects\\KenshiProjects\\KenshiCore\\KenshiCore.csproj",
         "projectName": "KenshiCore",
-        "projectPath": "C:\\Users\\davba\\OneDrive\\Escritorio\\net_misc\\KenshiProjects\\KenshiCore\\KenshiCore.csproj",
+        "projectPath": "C:\\GithubProjects\\KenshiProjects\\KenshiCore\\KenshiCore.csproj",
         "packagesPath": "C:\\Users\\davba\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\davba\\OneDrive\\Escritorio\\net_misc\\KenshiProjects\\KenshiCore\\obj\\",
+        "outputPath": "C:\\GithubProjects\\KenshiProjects\\KenshiCore\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -26,6 +26,7 @@
         ],
         "sources": {
           "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -53,7 +54,7 @@
             "Microsoft.NET.ILLink.Tasks": {
               "suppressParent": "All",
               "target": "Package",
-              "version": "[9.0.11, )",
+              "version": "[9.0.14, )",
               "autoReferenced": true
             },
             "fernandreu.ScintillaNET": {
@@ -80,7 +81,7 @@
               "privateAssets": "none"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.308/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.312/PortableRuntimeIdentifierGraph.json"
         }
       },
       "runtimes": {
@@ -89,14 +90,14 @@
         }
       }
     },
-    "C:\\Users\\davba\\OneDrive\\Escritorio\\net_misc\\KenshiProjects\\KenshiFixer\\KenshiFixer.csproj": {
+    "C:\\GithubProjects\\KenshiProjects\\KenshiFixer\\KenshiFixer.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\davba\\OneDrive\\Escritorio\\net_misc\\KenshiProjects\\KenshiFixer\\KenshiFixer.csproj",
+        "projectUniqueName": "C:\\GithubProjects\\KenshiProjects\\KenshiFixer\\KenshiFixer.csproj",
         "projectName": "KenshiFixer",
-        "projectPath": "C:\\Users\\davba\\OneDrive\\Escritorio\\net_misc\\KenshiProjects\\KenshiFixer\\KenshiFixer.csproj",
+        "projectPath": "C:\\GithubProjects\\KenshiProjects\\KenshiFixer\\KenshiFixer.csproj",
         "packagesPath": "C:\\Users\\davba\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\davba\\OneDrive\\Escritorio\\net_misc\\KenshiProjects\\KenshiFixer\\obj\\",
+        "outputPath": "C:\\GithubProjects\\KenshiProjects\\KenshiFixer\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -111,14 +112,15 @@
         ],
         "sources": {
           "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
           "net9.0-windows7.0": {
             "targetAlias": "net9.0-windows",
             "projectReferences": {
-              "C:\\Users\\davba\\OneDrive\\Escritorio\\net_misc\\KenshiProjects\\KenshiCore\\KenshiCore.csproj": {
-                "projectPath": "C:\\Users\\davba\\OneDrive\\Escritorio\\net_misc\\KenshiProjects\\KenshiCore\\KenshiCore.csproj"
+              "C:\\GithubProjects\\KenshiProjects\\KenshiCore\\KenshiCore.csproj": {
+                "projectPath": "C:\\GithubProjects\\KenshiProjects\\KenshiCore\\KenshiCore.csproj"
               }
             }
           }
@@ -142,7 +144,7 @@
             "Microsoft.NET.ILLink.Tasks": {
               "suppressParent": "All",
               "target": "Package",
-              "version": "[9.0.11, )",
+              "version": "[9.0.14, )",
               "autoReferenced": true
             },
             "fernandreu.ScintillaNET": {
@@ -169,7 +171,7 @@
               "privateAssets": "none"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.308/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.312/PortableRuntimeIdentifierGraph.json"
         }
       },
       "runtimes": {

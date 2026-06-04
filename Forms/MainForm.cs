@@ -1,4 +1,8 @@
-﻿using System;
+﻿using KenshiCore.Mods;
+using KenshiCore.ReverseEngineering;
+using KenshiCore.UI;
+using KenshiCore.Utilities;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -19,7 +23,10 @@ namespace KenshiFixer.Forms
     using System.Threading.Tasks;
     using System.Windows.Forms;
     using System.Xml.Linq;
+    using static ScintillaNET.Style;
     using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
+    //TODO: meshes and textures should be loaded in pairs, if one is missing action should be taken.
+    //TODO: decoupling of multiple files overriding each other in case one file is named exactly as another one, but how to know intention?
 
     public class MainForm : ProtoMainForm
     {
@@ -28,21 +35,33 @@ namespace KenshiFixer.Forms
         private Dictionary<string,string> fallbacks_sids = new Dictionary<string,string>();
         private Dictionary<string, ModRecord> replacements = new Dictionary<string, ModRecord>();
         private ReverseEngineer RE_fixed=new ReverseEngineer();
-
+        private List<string> nocrash_strings;
         public ReverseEngineer fixEngineer;
-        private HashSet<string> hidden_dependencies = new HashSet<string>();
         private HashSet<string> broken_paths_mods = new HashSet<string>();
+        private const string KenshiFix = "-KenshiFixer_Fix-";
+
         public MainForm()
         {
             Text = "Kenshi Fixer";
             Width = 800;
-            Height = 500;
-            this.ForeColor = Color.FromArgb(unchecked((int)0xFF2A2520)); 
-            setColors(Color.FromArgb(unchecked((int)0xFF8A3A3A)), Color.FromArgb(unchecked((int)0xFFD4CFC2)));
+            Height = 700;
 
+
+            ThemeManager.Set(
+                new AppTheme
+                {
+                    Background = Color.FromArgb(unchecked((int)0xFF8A3A3A)),
+                    Secondary = Color.FromArgb(unchecked((int)0xFFD4CFC2)),
+                    Foreground = Color.FromArgb(unchecked((int)0xFF2A2520))
+                });
+
+
+            this.ForeColor = Color.FromArgb(unchecked((int)0xFF2A2520)); 
+            
             AddColumn("Status", mod => getModStatus(mod), 150);
-            AddButton("Diagnose FilePaths", DiagnosePathsClick, mod => true);
-            AddButton("Generate Fix", GenerateFix, mod => true);
+            //AddButton("Diagnose FilePaths", DiagnosePathsClick);
+            AddButton("Generate Fix", GenerateFix);
+            //AddButton("Regenerate Bridge", GenerateBridge);
             shouldResetLog = false;
             fixEngineer = new ReverseEngineer();
 
@@ -52,16 +71,84 @@ namespace KenshiFixer.Forms
             can_crash_registry[("SQUAD_TEMPLATE", "squad2")] = "CHARACTER";
             can_crash_registry[("SQUAD_TEMPLATE", "animals")] = "ANIMAL_CHARACTER";
             can_crash_registry[("SQUAD_TEMPLATE", "animals2")] = "ANIMAL_CHARACTER";
-            //modsListView.SelectedIndexChanged += Mainform_SelectedIndexChanged;
 
-            fallbacks_sids["FACTION"] = "10--KenshiFixer_Fix-.mod";
-            fallbacks_sids["CHARACTER"] = "11--KenshiFixer_Fix-.mod";
-            fallbacks_sids["ANIMAL_CHARACTER"] = "12--KenshiFixer_Fix-.mod";
+            fallbacks_sids["FACTION"] = $"10-{KenshiFix}.mod";
+            fallbacks_sids["CHARACTER"] = $"11-{KenshiFix}.mod";
+            fallbacks_sids["ANIMAL_CHARACTER"] = $"12-{KenshiFix}.mod";
+
+            nocrash_strings = new List<string>
+            {
+                "has no faction",
+                "no faction for homeless squad"
+            };
+            AddToggle("Show Recent Infos", (mod) => ShowInfos());
+            AddToggle("Show Recent Warnings", (mod) => ShowWarnings());
+            AddToggle("Show Recent Errors", (mod) => ShowErrors());
+            AddToggle("Show Special Errors", (mod) => ShowSpecialErrors());
+            AddButton("Sort Mods", SortMods);
         }
-        protected override void OnLoad(EventArgs e)
+        protected override void LoadMods()
         {
-            base.OnLoad(e);
-            ShowLogButton.Enabled = true;
+            var repo = ModRepository.Instance;
+
+            repo.LoadBaseGameMods();
+            repo.LoadGameDirMods();
+            repo.LoadWorkshopMods();
+            repo.LoadSelectedMods();
+            repo.excludeUnselectedMods = true;
+        }
+        private string searchInKenshiInfoLog(Func<string, bool> condition)
+        {
+            string path = Path.Combine(ModManager.kenshiPath!, "kenshi_info.log");
+
+            if (!File.Exists(path))
+                return string.Empty;
+
+            StringBuilder sb = new StringBuilder();
+
+            using var stream = new FileStream(
+                path,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.ReadWrite | FileShare.Delete);
+
+            using var reader = new StreamReader(stream);
+
+            string? line;
+            while ((line = reader.ReadLine()) != null)
+            {
+                if (condition(line))
+                {
+                    sb.AppendLine(line);
+                }
+            }
+
+            return sb.ToString();
+        }
+        private void ShowInfos()
+        {
+            var logform = getLogForm();
+            logform.LogString("--- INFORMATION: ---\n", Color.Blue);
+            logform.LogString(searchInKenshiInfoLog(s => s.Contains("[info]")), Color.LightBlue);
+        }
+        private void ShowWarnings()
+        {
+            var logform = getLogForm();
+            logform.LogString("--- WARNINGS: ---\n", Color.Yellow);
+            logform.LogString(searchInKenshiInfoLog(s => s.Contains("[warning]")), Color.LightYellow);
+
+        }
+        private void ShowErrors()
+        {
+            var logform = getLogForm();
+            logform.LogString("--- ERRORS: ---\n", Color.Red);
+            logform.LogString(searchInKenshiInfoLog(s => s.Contains("[error]") && nocrash_strings.Any(n => s.Contains(n))), Color.Orange);
+        }
+        private void ShowSpecialErrors()
+        {
+            var logform = getLogForm();
+            logform.LogString("--- SPECIAL ERRORS: ---\n", Color.Red);
+            logform.LogString(searchInKenshiInfoLog(s => (s.Contains("[error]")&& !nocrash_strings.Any(n => s.Contains(n)))|| s.Contains("[fatal]")), Color.OrangeRed);
         }
         private string getModStatus(ModItem mod)
         {
@@ -69,20 +156,25 @@ namespace KenshiFixer.Forms
                 return "broken_path";
             return "ok";
         }
-        private void LoadTemplate()
+        private ReverseEngineer LoadTemplate(string templateName)
         {
-            RE_fixed = new ReverseEngineer();
+            ReverseEngineer RE = new ReverseEngineer();
             string exeDir = AppContext.BaseDirectory;
             string fixTemplatePath = Path.Combine(
                 exeDir,
                 "FixTemplates",
-                "-KenshiFixer_Fix-"
+                templateName
             );
-            RE_fixed.LoadModFile(fixTemplatePath);
+            RE.LoadModFile(fixTemplatePath);
+            return RE;
         }
-        private void GenerateFix(object? sender, EventArgs e)
+        public async void GenerateFix(object? sender, EventArgs e)
         {
-            LoadTemplate();
+            await Task.Run(() => GenerateFixAsync());
+        }
+        private void GenerateFixAsync()
+        {
+            RE_fixed = LoadTemplate(KenshiFix);
             foreach ((string,string) elem in can_crash_registry.Keys)
             {
                 string category = elem.Item2;
@@ -121,34 +213,94 @@ namespace KenshiFixer.Forms
             {
                 RE_fixed.deleteRecord(RE_fixed.searchModRecordByStringId(id)!);
             }
-            SaveFixMod();
+
+            ProgressController progress = ProgressController.Instance;
+
+            List<string> stringIds = RERepository.GetAllSuspiciousStringIds();
+            progress.Initialize(stringIds.Count);
+            int i = 0;
+            foreach (string sid in stringIds)
+            {
+                ModRecord? dirtyRecord = RERepository.getModRecordIfDirty(sid);
+                if (dirtyRecord != null)
+                {
+                    RE_fixed.AddRecordAsExisting(dirtyRecord);
+                }
+                i++;
+                progress.Report(i, $"analyzing: {i}");
+            }
+            progress.Finish();
+
+            SaveFixMod(KenshiFix);
         }
-        public void SaveFixMod()
+        private void SortMods(object? sender, EventArgs e)
+        {
+            var sorter = new LoadOrderSorter(KenshiFix);//, KenshiBridge);
+            var modNames = ModRepository.Instance.SelectedMods.ToList();
+            sorter.ApplyNewestSort(modNames);
+            sorter.ApplySortToCreators(modNames, sorter.ApplyMinimumConflictSort);
+            sorter.ApplySortToCreators(modNames, sorter.ApplyDependencyAwareSort);
+            sorter.ApplySortToCreators(modNames, sorter.ApplyDirectDependencySort); 
+            ModRepository.Instance.SetSelectedMods(modNames);
+            PopulateModsListView();
+            saveLoadOrder();
+        }
+        private void saveLoadOrder()
+        {
+            string loadorderdir = Path.Combine(ModManager.kenshiPath!, "data");
+            string backuppath = Path.Combine(loadorderdir, $"mods_backup.txt");
+            string loadorderpath = Path.Combine(loadorderdir, $"mods.cfg");
+            if (!File.Exists(backuppath))
+            {
+                File.Copy(loadorderpath, backuppath);
+            }
+            File.WriteAllLines(loadorderpath, ModRepository.Instance.SelectedMods.ToList());
+            UiService.ShowMessage("load order saved!");
+        }
+        protected override async Task AfterModsLoadedAsync()
+        {
+            await Task.Run(() =>
+                RERepository.LoadFromMods(
+                    mergedMods,
+                    CoreUtils.GetRealModPath
+                )
+            );
+        }
+
+        public void SaveFixMod(string fixmod)
         {
             string modsRoot = ModManager.gamedirModsPath
                 ?? throw new InvalidOperationException("Mods directory not set");
 
-            string fixFolder = Path.Combine(modsRoot, "-KenshiFixer_Fix-");
-            string fixModFile = Path.Combine(fixFolder, "-KenshiFixer_Fix-.mod");
+            string fixFolder = Path.Combine(modsRoot, $"{fixmod}");
+            string fixModFile = Path.Combine(fixFolder, $"{fixmod}.mod");
 
             Directory.CreateDirectory(fixFolder); // safe even if it exists
 
             RE_fixed.SaveModFile(fixModFile);
-            CoreUtils.Print("-KenshiFixer_Fix- saved!",1);
+            UiService.ShowMessage($"{fixmod}.mod saved!");
         }
-        private void DiagnosePathsClick(object? sender, EventArgs e)
+
+
+        public async void DiagnosePathsClick(object? sender, EventArgs e)
+        {
+            await Task.Run(() => DiagnosePathsClickAsync());
+        }
+        private void DiagnosePathsClickAsync()
         {
             var logform = getLogForm();
-            hidden_dependencies = new HashSet<string>();
             broken_paths_mods= new HashSet<string>();
             int ocurrences = 0;
             StringBuilder sb= new StringBuilder();
 
+            ProgressController controller = ProgressController.Instance;
 
-
-            //foreach(ModItem mod in ReverseEngineersCache.Keys)
+            controller.Initialize(mergedMods.Count);
+            int i = 0;
             foreach (var kvp in mergedMods)
             {
+                if (ModRepository.Instance.BaseGameMods.Contains(kvp.Key))
+                    continue;
                 string modName = kvp.Key;
                 ModItem mod = kvp.Value;
                 if (!RERepository.TryGet(modName, out var re) || re == null)
@@ -156,8 +308,6 @@ namespace KenshiFixer.Forms
                 string? modpath = mod.getModFilePath();
                 if (string.IsNullOrEmpty(modpath))
                     continue;
-                //ReverseEngineer re= ReverseEngineersCache[mod];
-                //string? modpath = mod.getModFilePath()!;
 
                 List<string> brokenForThisMod = new List<string>();
                 foreach (ModRecord record in re.modData.Records!)
@@ -181,15 +331,16 @@ namespace KenshiFixer.Forms
                     foreach (var entry in brokenForThisMod)
                         sb.AppendLine(entry);
                 }
+                i++;
+                controller.Report(i, $"{modName} ({i} analyzed)");
             }
+            controller.Finish("Diagnosis complete");
             if (logform.InvokeRequired)
             {
                 logform.BeginInvoke((Action)(() =>
                 {
                     logform.LogString($"-----------BROKEN FILEPATHS({ocurrences}):------------\n", Color.IndianRed);
                     logform.LogString(sb.ToString(), Color.Red);
-                    logform.LogString($"-----------HIDDEN DEPENDENCIES({hidden_dependencies.Count()}):------------\n", Color.IndianRed);
-                    logform.LogString(string.Join(Environment.NewLine, hidden_dependencies), Color.Orange);
                     logform.Refresh();
                 }));
             }
@@ -197,8 +348,6 @@ namespace KenshiFixer.Forms
             {
                 logform.LogString($"-----------BROKEN FILEPATHS({ocurrences}):------------\n", Color.IndianRed);
                 logform.LogString(sb.ToString(), Color.Red);
-                logform.LogString($"-----------HIDDEN DEPENDENCIES({hidden_dependencies.Count()}):------------\n", Color.OrangeRed);
-                logform.LogString(string.Join(Environment.NewLine, hidden_dependencies), Color.Orange);
                 logform.Refresh();
             }
             RefreshColumn(1);
@@ -208,72 +357,18 @@ namespace KenshiFixer.Forms
         {
             if (mod == null || string.IsNullOrEmpty(filePath))
                 return false;
-            string normalizedPath = filePath.Replace('\\','/');
-            if(mod.WorkshopId != -1 && !normalizedPath.StartsWith(@"./data", StringComparison.OrdinalIgnoreCase))
-            {   
-                string[] parts = normalizedPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-                string[] remainingParts = parts.Skip(3).ToArray();
-                string relativePathInsideMod = Path.Combine(remainingParts);
-                if (parts.Count()<=2)
-                    return false;
-                string key = mergedMods.Keys.FirstOrDefault(k => string.Equals(k, parts[2] + ".mod", StringComparison.OrdinalIgnoreCase))!;
-                if (key==null)//!mergedMods.ContainsKey(parts[2] + ".mod"))
-                {
-                    hidden_dependencies.Add(parts[2] + ".mod");
-                    return false;
-                }
-                return File.Exists(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(mergedMods[key].getModFilePath()!)!, relativePathInsideMod)));
-            }
-            return File.Exists(Path.GetFullPath(Path.Combine(Path.GetFullPath(Path.Combine(ModManager.gamedirModsPath!, "..")), normalizedPath)));
+            return !ModRepository.Instance.ResolveRealPath(filePath).StartsWith("E_");
         }
-        protected override async void OnShown(EventArgs e)
+        protected override Color GetModColor(ModItem mod)
         {
-            base.OnShown(e);
-            await OnShownAsync(e);
+            if (mod.Name == KenshiFix+".mod")
+                return Color.LightGreen;
+
+            //if (mod.Name == KenshiBridge+".mod")
+          //  /    return Color.LightBlue;
+
+            return base.GetModColor(mod);
         }
-        private async Task OnShownAsync(EventArgs e)
-        {
-            if (InitializationTask != null)
-                await InitializationTask;
-            ExcludeUnselectedMods();
-            LoadBaseGameData();
-            InitializeProgress(0, mergedMods.Count);
-            int i = 0;
-            List<string> modsToRemove = new();
-            foreach (var mod in mergedMods)
-            {
-                ReverseEngineer re = new ReverseEngineer();
-                string realmodpath = mod.Value.getModFilePath()!;
-                if (string.IsNullOrEmpty(realmodpath))
-                {
-                    modsToRemove.Add(mod.Key);
-                    continue;
-                }
-                re.LoadModFile(realmodpath);
-                RERepository.AddOrUpdate(mod.Key, re);
-                i++;
-                ReportProgress(i, $"Engineered mod:{i}");
-            }
-            foreach (var key in modsToRemove)
-                mergedMods.Remove(key);
 
-            modsListView.BeginUpdate();
-            try
-            {
-                foreach (ListViewItem item in modsListView.Items.Cast<ListViewItem>().ToList())
-                {
-                    if (item.Tag is ModItem mod && modsToRemove.Contains(mod.Name))
-                        modsListView.Items.Remove(item);
-                }
-            }
-            finally
-            {
-                modsListView.EndUpdate();
-            }
-
-
-        }
     }
-    
-
 }
