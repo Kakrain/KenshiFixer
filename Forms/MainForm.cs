@@ -31,13 +31,7 @@ namespace KenshiFixer.Forms
 
     public class MainForm : ProtoMainForm
     {
-        //private ReverseEngineerRepository RERepository = ReverseEngineerRepository.Instance;
-        //private Dictionary<(string, string), string> can_crash_registry = new();
-        //private Dictionary<string,string> fallbacks_sids = new Dictionary<string,string>();
-        //private Dictionary<string, ModRecord> replacements = new Dictionary<string, ModRecord>();
-        //private ReverseEngineer RE_fixed=new ReverseEngineer();
         private List<string> nocrash_strings;
-        //public ReverseEngineer fixEngineer;
         private HashSet<string> broken_paths_mods = new HashSet<string>();
         private const string KenshiFix = "-KenshiFixer_Fix-";
 

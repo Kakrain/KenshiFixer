@@ -43,7 +43,7 @@ namespace KenshiFixer.Fixers
                 "FixTemplates",
                 TEMPLATE_NAME
             );
-            RE.LoadModFile(TEMPLATE_NAME);
+            RE.LoadModFile(fixTemplatePath);
         }
         public void AddEmergencyFallbacks()
         {
@@ -91,21 +91,41 @@ namespace KenshiFixer.Fixers
         {
 
             List<string> stringIds = RERepository.GetAllSuspiciousStringIds();
-
+            Dictionary<string, ModRecord> records_to_restore = new();
             ProgressController progress = ProgressController.Instance;
-            progress.Initialize(stringIds.Count);
+            progress.Initialize(RERepository._loadOrder.Count);
+
             int i = 0;
-            foreach (string sid in stringIds)
+            foreach (var modName in RERepository._loadOrder)
             {
-                ModRecord? dirtyRecord = RERepository.getModRecordIfDirty(sid);
-                if (dirtyRecord != null)
-                {
-                    RE.AddRecordAsExisting(dirtyRecord);
-                }
                 i++;
                 progress.Report(i, $"analyzing: {i}");
+                if (RERepository._reverseEngineers.TryGetValue(modName, out var re))
+                {
+                    foreach (ModRecord record in re.modData.Records!)
+                    {
+                        if(stringIds.Contains(record.StringId))
+                        {
+                            if(!records_to_restore.Keys.Contains(record.StringId))
+                            {
+                                records_to_restore[record.StringId] = record.deepClone();
+                            }
+                            else
+                            {
+                                records_to_restore[record.StringId].applyChangesCarefully(record);
+                            }
+                        }
+                    }
+                }
+
             }
+
             progress.Finish();
+            foreach (ModRecord record in records_to_restore.Values)
+            {
+                if(!record.isRemoved())
+                    RE.AddRecordAsExisting(record);
+            }
         }
         public void Save()
         {
@@ -115,7 +135,7 @@ namespace KenshiFixer.Fixers
             string fixFolder = Path.Combine(modsRoot, $"{TEMPLATE_NAME}");
             string fixModFile = Path.Combine(fixFolder, $"{TEMPLATE_NAME}.mod");
 
-            Directory.CreateDirectory(fixFolder); // safe even if it exists
+            Directory.CreateDirectory(fixFolder);
 
             RE.SaveModFile(fixModFile);
             UiService.ShowMessage($"{TEMPLATE_NAME}.mod saved!");
