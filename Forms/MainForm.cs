@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 namespace KenshiFixer.Forms
 {
     using KenshiCore;
+    using KenshiFixer.Fixers;
     using ScintillaNET;
     using System;
     using System.Collections.Generic;
@@ -30,13 +31,13 @@ namespace KenshiFixer.Forms
 
     public class MainForm : ProtoMainForm
     {
-        private ReverseEngineerRepository RERepository = ReverseEngineerRepository.Instance;
-        private Dictionary<(string, string), string> can_crash_registry = new();
-        private Dictionary<string,string> fallbacks_sids = new Dictionary<string,string>();
-        private Dictionary<string, ModRecord> replacements = new Dictionary<string, ModRecord>();
-        private ReverseEngineer RE_fixed=new ReverseEngineer();
+        //private ReverseEngineerRepository RERepository = ReverseEngineerRepository.Instance;
+        //private Dictionary<(string, string), string> can_crash_registry = new();
+        //private Dictionary<string,string> fallbacks_sids = new Dictionary<string,string>();
+        //private Dictionary<string, ModRecord> replacements = new Dictionary<string, ModRecord>();
+        //private ReverseEngineer RE_fixed=new ReverseEngineer();
         private List<string> nocrash_strings;
-        public ReverseEngineer fixEngineer;
+        //public ReverseEngineer fixEngineer;
         private HashSet<string> broken_paths_mods = new HashSet<string>();
         private const string KenshiFix = "-KenshiFixer_Fix-";
 
@@ -63,18 +64,9 @@ namespace KenshiFixer.Forms
             AddButton("Generate Fix", GenerateFix);
             //AddButton("Regenerate Bridge", GenerateBridge);
             shouldResetLog = false;
-            fixEngineer = new ReverseEngineer();
+            //fixEngineer = new ReverseEngineer();
 
-            can_crash_registry[("SQUAD_TEMPLATE", "faction")] = "FACTION";
-            can_crash_registry[("SQUAD_TEMPLATE", "leader")] = "CHARACTER";
-            can_crash_registry[("SQUAD_TEMPLATE", "squad")] = "CHARACTER";
-            can_crash_registry[("SQUAD_TEMPLATE", "squad2")] = "CHARACTER";
-            can_crash_registry[("SQUAD_TEMPLATE", "animals")] = "ANIMAL_CHARACTER";
-            can_crash_registry[("SQUAD_TEMPLATE", "animals2")] = "ANIMAL_CHARACTER";
-
-            fallbacks_sids["FACTION"] = $"10-{KenshiFix}.mod";
-            fallbacks_sids["CHARACTER"] = $"11-{KenshiFix}.mod";
-            fallbacks_sids["ANIMAL_CHARACTER"] = $"12-{KenshiFix}.mod";
+            
 
             nocrash_strings = new List<string>
             {
@@ -156,82 +148,16 @@ namespace KenshiFixer.Forms
                 return "broken_path";
             return "ok";
         }
-        private ReverseEngineer LoadTemplate(string templateName)
-        {
-            ReverseEngineer RE = new ReverseEngineer();
-            string exeDir = AppContext.BaseDirectory;
-            string fixTemplatePath = Path.Combine(
-                exeDir,
-                "FixTemplates",
-                templateName
-            );
-            RE.LoadModFile(fixTemplatePath);
-            return RE;
-        }
         public async void GenerateFix(object? sender, EventArgs e)
         {
             await Task.Run(() => GenerateFixAsync());
         }
         private void GenerateFixAsync()
         {
-            RE_fixed = LoadTemplate(KenshiFix);
-            foreach ((string,string) elem in can_crash_registry.Keys)
-            {
-                string category = elem.Item2;
-                IReadOnlyDictionary<string,ModRecord> main_records = RERepository.GetAllRecordsMerged(elem.Item1);
-                IReadOnlyDictionary<string,ModRecord> XD_records = RERepository.GetAllRecordsMerged(can_crash_registry[elem]);
-                foreach (var record in main_records.Values)
-                {
-                    Dictionary<string, int[]>? XDCategory = record.GetExtraData(category);
-                    if (XDCategory != null)
-                    {
-                        foreach (string sid in XDCategory.Keys)
-                        {
-                            if (!XD_records.ContainsKey(sid))
-                            {
-                                string fallback_sid = fallbacks_sids[can_crash_registry[elem]];
-                                ModRecord fallbackRecord = RE_fixed.searchModRecordByStringId(fallback_sid)!;
-                                ModRecord fixed_record=RE_fixed.EnsureRecordExists(record);
-                                fixed_record.DeleteExtraData(category,sid);
-
-                                replacements.TryGetValue(sid, out ModRecord? cloned);
-                                if (cloned == null)
-                                {
-                                    cloned = RE_fixed.CloneRecord(fallbackRecord, 1)[0];
-                                    cloned.Name = "restored_" + sid + "_fallback";
-                                    replacements[sid]= cloned;
-                                }
-                                RE_fixed.AddExtraData(fixed_record, cloned, category, XDCategory[sid]);
-                            }
-                        }
-
-                    }
-                }
-            }
-
-            foreach(string id in fallbacks_sids.Values)
-            {
-                RE_fixed.deleteRecord(RE_fixed.searchModRecordByStringId(id)!);
-            }
-
-            ProgressController progress = ProgressController.Instance;
-
-            List<string> stringIds = RERepository.GetAllSuspiciousStringIds();
-            progress.Initialize(stringIds.Count);
-            int i = 0;
-            foreach (string sid in stringIds)
-            {
-                ModRecord? dirtyRecord = RERepository.getModRecordIfDirty(sid);
-                if (dirtyRecord != null)
-                {
-                    RE_fixed.AddRecordAsExisting(dirtyRecord);
-                }
-                i++;
-                progress.Report(i, $"analyzing: {i}");
-            }
-            progress.Finish();
-
-            SaveFixMod(KenshiFix);
+            KenshiFixerGenerator kfixer = new KenshiFixerGenerator();
+            kfixer.AddEmergencyFallbacks();
+            kfixer.RestoreEmptiedFilenames();
+            kfixer.Save();
         }
         private void SortMods(object? sender, EventArgs e)
         {
@@ -260,29 +186,15 @@ namespace KenshiFixer.Forms
         protected override async Task AfterModsLoadedAsync()
         {
             await Task.Run(() =>
-                RERepository.LoadFromMods(
+                ReverseEngineerRepository.Instance.LoadFromMods(
                     mergedMods,
                     CoreUtils.GetRealModPath
                 )
             );
         }
 
-        public void SaveFixMod(string fixmod)
-        {
-            string modsRoot = ModManager.gamedirModsPath
-                ?? throw new InvalidOperationException("Mods directory not set");
 
-            string fixFolder = Path.Combine(modsRoot, $"{fixmod}");
-            string fixModFile = Path.Combine(fixFolder, $"{fixmod}.mod");
-
-            Directory.CreateDirectory(fixFolder); // safe even if it exists
-
-            RE_fixed.SaveModFile(fixModFile);
-            UiService.ShowMessage($"{fixmod}.mod saved!");
-        }
-
-
-        public async void DiagnosePathsClick(object? sender, EventArgs e)
+        /*public async void DiagnosePathsClick(object? sender, EventArgs e)
         {
             await Task.Run(() => DiagnosePathsClickAsync());
         }
@@ -352,7 +264,7 @@ namespace KenshiFixer.Forms
             }
             RefreshColumn(1);
 
-        }
+        }*/
         public bool ModFileExists(ModItem mod, string filePath)
         {
             if (mod == null || string.IsNullOrEmpty(filePath))
@@ -363,10 +275,6 @@ namespace KenshiFixer.Forms
         {
             if (mod.Name == KenshiFix+".mod")
                 return Color.LightGreen;
-
-            //if (mod.Name == KenshiBridge+".mod")
-          //  /    return Color.LightBlue;
-
             return base.GetModColor(mod);
         }
 

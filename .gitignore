@@ -36,3 +36,5 @@ obj/Debug/net9.0-windows/KenshiPatcher.AssemblyInfo.cs
 .vs/KenshiPatcher/FileContentIndex/3b93653a-7ea1-446d-9618-86c5c8a5686b.vsidx
 .vs/KenshiPatcher/FileContentIndex/0850c7b2-e2aa-4afd-9094-3a1d8663151b.vsidx
 KenshiPatcher.csproj
+*.v2
+*.v2

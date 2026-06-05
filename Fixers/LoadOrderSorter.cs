@@ -8,14 +8,13 @@ using System.Reflection.Metadata;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace KenshiFixer
+namespace KenshiFixer.Fixers
 {
     public class LoadOrderSorter
     {
         //private const int KENSHIFIXER_BRIDGE = 0;
         private const int KENSHIFIXER_END = -2;
         private const int PATCH = -3;
-        private const int REKENSHI = -4;
         private const int INVALID = -1000;
         private string _kenshiFixerModName;
         //private string _kenshiFixerBridgeModName;
