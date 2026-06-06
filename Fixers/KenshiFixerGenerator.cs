@@ -85,46 +85,68 @@ namespace KenshiFixer.Fixers
             {
                 RE.deleteRecord(RE.searchModRecordByStringId(id)!);
             }
-
         }
         public void RestoreEmptiedFilenames()
         {
-
-            List<string> stringIds = RERepository.GetAllSuspiciousStringIds();
+            Dictionary<string, Dictionary<string,string>> current_value=new();
+            Dictionary<string, Dictionary<string, bool>> should_update = new();
             Dictionary<string, ModRecord> records_to_restore = new();
             ProgressController progress = ProgressController.Instance;
             progress.Initialize(RERepository._loadOrder.Count);
 
             int i = 0;
-            foreach (var modName in RERepository._loadOrder)
+            foreach (var modName in RERepository._loadOrder.AsEnumerable().Reverse())
             {
                 i++;
-                progress.Report(i, $"analyzing: {i}");
+                progress.Report(i, $"Processing {modName}: {i}/{RERepository._loadOrder.Count}...");
                 if (RERepository._reverseEngineers.TryGetValue(modName, out var re))
                 {
                     foreach (ModRecord record in re.modData.Records!)
                     {
-                        if(stringIds.Contains(record.StringId))
+                        if (!current_value.ContainsKey(record.StringId))
                         {
-                            if(!records_to_restore.Keys.Contains(record.StringId))
+                            current_value[record.StringId] = new Dictionary<string, string>();
+                            should_update[record.StringId] = new Dictionary<string, bool>();
+                            records_to_restore[record.StringId] = record;
+                        }
+                        foreach (string filename in record.FilenameFields.Keys)
+                        {
+                            if (!current_value[record.StringId].ContainsKey(filename))
                             {
-                                records_to_restore[record.StringId] = record.deepClone();
+                                current_value[record.StringId][filename] = record.FilenameFields[filename];
+                                should_update[record.StringId][filename] = false;
                             }
                             else
                             {
-                                records_to_restore[record.StringId].applyChangesCarefully(record);
+                                if (should_update[record.StringId][filename])
+                                    continue;
+
+                                if (string.IsNullOrEmpty(current_value[record.StringId][filename]) && !string.IsNullOrEmpty(record.FilenameFields[filename]))
+                                {
+                                    current_value[record.StringId][filename] = record.FilenameFields[filename];
+                                    should_update[record.StringId][filename] = true;
+                                }
+                                else
+                                {
+                                    current_value[record.StringId][filename] = record.FilenameFields[filename];
+                                    should_update[record.StringId][filename] = false;
+                                }
                             }
                         }
                     }
                 }
-
             }
-
             progress.Finish();
-            foreach (ModRecord record in records_to_restore.Values)
+            foreach(string sid in current_value.Keys)
             {
-                if(!record.isRemoved())
-                    RE.AddRecordAsExisting(record);
+                foreach (string filename in current_value[sid].Keys)
+                {
+                    if (should_update[sid][filename])
+                    {
+                        ModRecord record = RE.EnsureRecordExists(records_to_restore[sid]);
+                        record.FilenameFields[filename] = current_value[sid][filename];
+                    }
+                }
             }
         }
         public void Save()

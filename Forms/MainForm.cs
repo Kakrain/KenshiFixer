@@ -56,9 +56,7 @@ namespace KenshiFixer.Forms
             AddColumn("Status", mod => getModStatus(mod), 150);
             //AddButton("Diagnose FilePaths", DiagnosePathsClick);
             AddButton("Generate Fix", GenerateFix);
-            //AddButton("Regenerate Bridge", GenerateBridge);
             shouldResetLog = false;
-            //fixEngineer = new ReverseEngineer();
 
             
 
