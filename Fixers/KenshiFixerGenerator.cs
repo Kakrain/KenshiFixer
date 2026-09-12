@@ -2,9 +2,11 @@
 using KenshiCore.ReverseEngineering;
 using KenshiCore.UI;
 using KenshiCore.Utilities;
+using KenshiFixer.ModAnalysis;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -15,24 +17,45 @@ namespace KenshiFixer.Fixers
         public const string TEMPLATE_NAME = "-KenshiFixer_Fix-";
         private ReverseEngineer RE;
         private ReverseEngineerRepository RERepository = ReverseEngineerRepository.Instance;
-        private Dictionary<(string, string), string> can_crash_registry = new();
-        private Dictionary<string, string> fallbacks_sids = new Dictionary<string, string>();
+        private Dictionary<(int, string), int> can_crash_registry = new();
         private Dictionary<string, ModRecord> replacements = new Dictionary<string, ModRecord>();
+        private Dictionary<int, ModRecord> fallbackTemplates = new();
 
         public KenshiFixerGenerator()
         {
             RE = new ReverseEngineer();
             LoadTemplate();
-            can_crash_registry[("SQUAD_TEMPLATE", "faction")] = "FACTION";
-            can_crash_registry[("SQUAD_TEMPLATE", "leader")] = "CHARACTER";
-            can_crash_registry[("SQUAD_TEMPLATE", "squad")] = "CHARACTER";
-            can_crash_registry[("SQUAD_TEMPLATE", "squad2")] = "CHARACTER";
-            can_crash_registry[("SQUAD_TEMPLATE", "animals")] = "ANIMAL_CHARACTER";
-            can_crash_registry[("SQUAD_TEMPLATE", "animals2")] = "ANIMAL_CHARACTER";
+            AddCrashMapping("SQUAD_TEMPLATE", "faction", "FACTION");
+            AddCrashMapping("SQUAD_TEMPLATE", "leader", "CHARACTER");
+            AddCrashMapping("SQUAD_TEMPLATE", "squad", "CHARACTER");
+            AddCrashMapping("SQUAD_TEMPLATE", "squad2", "CHARACTER");
+            AddCrashMapping("SQUAD_TEMPLATE", "animals", "ANIMAL_CHARACTER");
+            AddCrashMapping("SQUAD_TEMPLATE", "animals2", "ANIMAL_CHARACTER");
+            AddCrashMapping("RACE", "hair colors", "COLOR_DATA");
+            AddCrashMapping("RACE", "hairs", "ATTACHMENT");
+            AddCrashMapping("BUILDING_PART", "material", "MATERIAL_SPEC");
 
-            fallbacks_sids["FACTION"] = $"10-{TEMPLATE_NAME}.mod";
-            fallbacks_sids["CHARACTER"] = $"11-{TEMPLATE_NAME}.mod";
-            fallbacks_sids["ANIMAL_CHARACTER"] = $"12-{TEMPLATE_NAME}.mod";
+
+            AddCrashMapping("TOWN", "faction", "FACTION");
+
+        }
+        private void AddCrashMapping(string sourceType,string category,string targetType)
+        {
+            can_crash_registry[(ModRecord.getRecordTypeInt(sourceType), category)] = ModRecord.getRecordTypeInt(targetType);
+        }
+        private void LoadFallbackTemplates()
+        {
+            fallbackTemplates.Clear();
+
+            foreach (ModRecord record in RE.modData.Records!)
+            {
+                int type = record.getRecordTypeCode();
+
+                if (!fallbackTemplates.ContainsKey(type))
+                {
+                    fallbackTemplates[type] = record;
+                }
+            }
         }
         private void LoadTemplate()
         {
@@ -44,111 +67,113 @@ namespace KenshiFixer.Fixers
                 TEMPLATE_NAME
             );
             RE.LoadModFile(fixTemplatePath);
+            LoadFallbackTemplates();
         }
-        public void AddEmergencyFallbacks()
+        private bool TryGetCulprit(RecordProblem problem, out ModRecord? culprit)
         {
-            foreach ((string, string) elem in can_crash_registry.Keys)
-            {
-                string category = elem.Item2;
-                IReadOnlyDictionary<string, ModRecord> main_records = RERepository.GetAllRecordsMerged(elem.Item1);
-                IReadOnlyDictionary<string, ModRecord> XD_records = RERepository.GetAllRecordsMerged(can_crash_registry[elem]);
-                foreach (var record in main_records.Values)
-                {
-                    Dictionary<string, int[]>? XDCategory = record.GetExtraData(category);
-                    if (XDCategory != null)
-                    {
-                        foreach (string sid in XDCategory.Keys)
-                        {
-                            if (!XD_records.ContainsKey(sid))
-                            {
-                                string fallback_sid = fallbacks_sids[can_crash_registry[elem]];
-                                ModRecord fallbackRecord = RE.searchModRecordByStringId(fallback_sid)!;
-                                CoreUtils.Print(fallbackRecord.ToString());
-                                ModRecord fixed_record = RE.EnsureRecordExists(record);
-                                fixed_record.DeleteExtraData(category, sid);
+            culprit = null;
 
-                                replacements.TryGetValue(sid, out ModRecord? cloned);
-                                if (cloned == null)
-                                {
-                                    cloned = RE.CloneRecord(fallbackRecord, 1)[0];
-                                    cloned.Name = "restored_" + sid + "_fallback";
-                                    replacements[sid] = cloned;
-                                }
-                                RE.AddExtraData(fixed_record, cloned, category, XDCategory[sid]);
-                            }
-                        }
+            string modname = problem.involvedMods.ElementAt(0);
 
-                    }
-                }
-            }
-            foreach (string id in fallbacks_sids.Values)
+            ReverseEngineer? re = RERepository.GetReverseEngineer(modname);
+
+            if (re == null || re.modData?.Records == null)
+                return false;
+
+            culprit = re.modData.Records.Find(
+                r => r.StringId == problem.RecordId);
+
+            if (culprit == null)
             {
-                RE.deleteRecord(RE.searchModRecordByStringId(id)!);
+                CoreUtils.Print(
+                    $"Could not find culprit record {problem.RecordId} in {modname}.");
+
+                return false;
             }
+
+            return true;
         }
-        public void RestoreEmptiedFilenames()
+        public void SolveProblems(List<Problem> problems)
         {
-            Dictionary<string, Dictionary<string,string>> current_value=new();
-            Dictionary<string, Dictionary<string, bool>> should_update = new();
-            Dictionary<string, ModRecord> records_to_restore = new();
-            ProgressController progress = ProgressController.Instance;
-            progress.Initialize(RERepository._loadOrder.Count);
-
-            int i = 0;
-            foreach (var modName in RERepository._loadOrder.AsEnumerable().Reverse())
+            foreach(Problem problem in problems)
             {
-                i++;
-                progress.Report(i, $"Processing {modName}: {i}/{RERepository._loadOrder.Count}...");
-                if (RERepository._reverseEngineers.TryGetValue(modName, out var re))
+                if (problem is not RecordProblem rprob|| !TryGetCulprit(rprob, out ModRecord? culprit))
+                    continue;
+                switch(problem)
                 {
-                    foreach (ModRecord record in re.modData.Records!)
-                    {
-                        if (!current_value.ContainsKey(record.StringId))
-                        {
-                            current_value[record.StringId] = new Dictionary<string, string>();
-                            should_update[record.StringId] = new Dictionary<string, bool>();
-                            records_to_restore[record.StringId] = record;
-                        }
-                        foreach (string filename in record.FilenameFields.Keys)
-                        {
-                            if (!current_value[record.StringId].ContainsKey(filename))
-                            {
-                                current_value[record.StringId][filename] = record.FilenameFields[filename];
-                                should_update[record.StringId][filename] = false;
-                            }
-                            else
-                            {
-                                if (should_update[record.StringId][filename])
-                                    continue;
-
-                                if (string.IsNullOrEmpty(current_value[record.StringId][filename]) && !string.IsNullOrEmpty(record.FilenameFields[filename]))
-                                {
-                                    current_value[record.StringId][filename] = record.FilenameFields[filename];
-                                    should_update[record.StringId][filename] = true;
-                                }
-                                else
-                                {
-                                    current_value[record.StringId][filename] = record.FilenameFields[filename];
-                                    should_update[record.StringId][filename] = false;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            progress.Finish();
-            foreach(string sid in current_value.Keys)
-            {
-                foreach (string filename in current_value[sid].Keys)
-                {
-                    if (should_update[sid][filename])
-                    {
-                        ModRecord record = RE.EnsureRecordExists(records_to_restore[sid]);
-                        record.FilenameFields[filename] = current_value[sid][filename];
-                    }
+                    case MissingReference misref:
+                        SolveMissingReference(misref, culprit!);
+                        break;
+                    case EmptiedFilename emptied:
+                        SolveEmptiedFilename(emptied, culprit!);
+                        break;
+                    default:
+                        CoreUtils.Print($"Cannot fix problem of type {problem.GetType().Name}");
+                        break;
                 }
             }
         }
+
+        private void SolveMissingReference(MissingReference problem, ModRecord culprit)
+        {
+            int[] vars = culprit.ExtraDataFields[problem.Category][problem.StringId];
+
+            ModRecord fixedRecord = RE.EnsureRecordExists(culprit);
+
+            // Every missing reference gets removed.
+            fixedRecord.DeleteExtraData(problem.Category, problem.StringId);
+
+            // Some references additionally require a fallback.
+            if (!can_crash_registry.TryGetValue((culprit.getRecordTypeCode(), problem.Category),out int fallbackType))
+            {
+                return;
+            }
+
+            if (!fallbackTemplates.TryGetValue(fallbackType,out ModRecord? fallbackRecord))
+            {
+                CoreUtils.Print($"No fallback template for record type " +$"{ModRecord.getRecordTypeName(fallbackType)}.");
+                return;
+            }
+
+            RE.AddExtraData(fixedRecord,getReplacementRecord(problem.StringId, fallbackRecord),problem.Category,vars);
+        }
+        private void SolveEmptiedFilename(EmptiedFilename problem,ModRecord culprit)
+        {
+            ModRecord fixedRecord = RE.EnsureRecordExists(culprit);
+            fixedRecord.FilenameFields[problem.key] = problem.validValue;
+        }
+        private ModRecord getReplacementRecord(string strid,ModRecord fallbackRecord)
+        {
+            if (!replacements.TryGetValue(strid, out ModRecord? cloned))
+            {
+                cloned = RE.CloneRecord(fallbackRecord, 1)[0];
+                cloned.Name = strid + "_fallback_by_KenshiFixer";
+                replacements[strid] = cloned;
+            }
+            return cloned;
+
+        }
+        public static string GetFullPathForFixMod()
+        {
+            string modsRoot = ModManager.gamedirModsPath
+                ?? throw new InvalidOperationException("Mods directory not set");
+            string fixFolder = Path.Combine(modsRoot, $"{TEMPLATE_NAME}");
+            string fixModFile = Path.Combine(fixFolder, $"{TEMPLATE_NAME}.mod");
+            return fixModFile;
+        }
+        public static string GetFullPathForTemplate()
+        {
+            string exeDir = AppContext.BaseDirectory;
+            string fixTemplatePath = Path.Combine(
+                exeDir,
+                "FixTemplates",
+                TEMPLATE_NAME
+            );
+            return fixTemplatePath;
+        }
+
+
+
         public void Save()
         {
             string modsRoot = ModManager.gamedirModsPath
