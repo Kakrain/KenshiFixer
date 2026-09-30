@@ -36,6 +36,19 @@ namespace KenshiFixer.ModAnalysis
             return $"FileOverride: {Filename} - " + $"{OverridingMod} overrides {OverriddenMod}";
         }
     }
+    public class ReKenshi : Problem
+    {
+
+        public ReKenshi(string modName)
+        {
+            involvedMods.Add(modName);
+        }
+
+        public override string ToString()
+        {
+            return $"ReKenshi mod: {involvedMods.ElementAt(0)}";
+        }
+    }
     public abstract class RecordProblem : Problem
     {
         public string RecordId { get; }

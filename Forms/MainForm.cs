@@ -18,6 +18,7 @@ namespace KenshiFixer.Forms
     using System;
     using System.Collections.Generic;
     using System.Drawing;
+    using System.Globalization;
     using System.IO;
     using System.Linq;
     using System.Threading.Tasks;
@@ -51,7 +52,7 @@ namespace KenshiFixer.Forms
 
             this.ForeColor = Color.FromArgb(unchecked((int)0xFF2A2520)); 
             
-            AddColumn("Status", mod => getModStatus(mod), 150);
+            //AddColumn("Status", mod => getModStatus(mod), 150);
             shouldResetLog = false;
             
 
@@ -59,6 +60,7 @@ namespace KenshiFixer.Forms
             AddToggle("Show Missing References", "missing_refs", (mod) => ShowMissingReferences(mod), true);
             AddToggle("Show Emptied Filepaths", "emptied_paths", (mod) => ShowEmptiedFilepaths(mod), true);
             AddToggle("Show File Overrides", "file_overrides", (mod) => ShowFileOverrides(mod), true);
+            AddToggle("Show RE_Kenshi mods", "re_kenshi", (mod) => ShowREKenshiMods(mod), false);
 
             AddButton("Search Problems", SearchProblemsButton_Click);
 
@@ -66,7 +68,8 @@ namespace KenshiFixer.Forms
             AddButton("Reset Fix", ResetFix);
             AddButton("Sort Mods", SortMods);
         }
-        private void SearchProblemsButton_Click(object? sender, EventArgs e)
+
+                private void SearchProblemsButton_Click(object? sender, EventArgs e)
         {
             ReSearchProblems();
             UiService.ShowMessage("Analysis complete.");
@@ -136,14 +139,12 @@ namespace KenshiFixer.Forms
                     "That means animations may break, bodies may be invisible or weird crashes.\n\n",
                     Color.Gray);
             }
-
-
-
         }
         private void ShowFileOverrides(ModItem mod)
         {   
             var logform = getLogForm();
             string body_overridenfiles = analyzer.GetGeneralProblemsForMod(mod.Name,p=>p is FileOverride);
+            body_overridenfiles+= analyzer.GetGeneralProblemsCausedForMod(mod.Name, p => p is FileOverride);
             if (!string.IsNullOrEmpty(body_overridenfiles))
             {
                 logform.LogString("OVERRIDEN FILES:\n", Color.Yellow);
@@ -154,12 +155,20 @@ namespace KenshiFixer.Forms
                     Color.Gray);
             }
         }
-        private string getModStatus(ModItem mod)
+        private void ShowREKenshiMods(ModItem mod)
         {
-            //if (broken_paths_mods.Contains(mod.Name))
-            //    return "broken_path";
-            return "ok";
+            var logform = getLogForm();
+            string body_rekenshi = analyzer.GetGeneralProblemsForMod(mod.Name, p => p is ReKenshi);
+            if (!string.IsNullOrEmpty(body_rekenshi))
+            {
+                logform.LogString("RE_KENSHI MODS:\n", Color.Teal);
+                logform.LogString(body_rekenshi, Color.Teal);
+                logform.LogString(
+                    "These are re kenshi mods.\n\n",
+                    Color.Gray);
+            }
         }
+        
         public async void GenerateFix(object? sender, EventArgs e)
         {
             await Task.Run(() => GenerateFixAsync());
@@ -195,13 +204,17 @@ namespace KenshiFixer.Forms
         }
         public async void ResetFix(object? sender, EventArgs e)
         {
-            await Task.Run(() => ResetFixAsync());
+            await Task.Run(() =>
+            {
+                ResetFixAsync();
+            });
+
             ReSearchProblems();
             UiService.ShowMessage("KenshiFixer_Fix has been reset");
         }
         private void ResetFixAsync()
         {
-            ReverseEngineer RE = new ReverseEngineer(); 
+            ReverseEngineer RE = new ReverseEngineer(KenshiFixerGenerator.TEMPLATE_NAME + ".mod"); 
             string fixpath = KenshiFixerGenerator.GetFullPathForFixMod();
             RE.LoadModFile(KenshiFixerGenerator.GetFullPathForTemplate());
             RE.SaveModFile(fixpath);
@@ -246,19 +259,26 @@ namespace KenshiFixer.Forms
         {
             await Task.Run(() => ReverseEngineerRepository.Instance.LoadFromMods( mergedMods));
             ReSearchProblems();
+
         }
         protected override Color GetModColor(ModItem mod)
         {
             if (mod.Name == KenshiFix+".mod")
                 return Color.LightGreen;
-            if(analyzer.hasRecordProblems(mod.Name, p => p is TypeMismatch)&&(CoreUtils.toggles.GetValueOrDefault("mismatch", false)))
+            if (analyzer.hasGeneralProblems(mod.Name,p=>p is ReKenshi) && CoreUtils.toggles.GetValueOrDefault("re_kenshi", false))
+                return Color.Teal;
+            if (analyzer.hasRecordProblems(mod.Name, p => p is TypeMismatch)&&(CoreUtils.toggles.GetValueOrDefault("mismatch", false)))
                 return Color.Red;
             if (analyzer.hasRecordProblems(mod.Name, p => p is MissingReference) && (CoreUtils.toggles.GetValueOrDefault("missing_refs", false)))
                 return Color.Purple;
             if (analyzer.hasRecordProblems(mod.Name, p => p is EmptiedFilename) && (CoreUtils.toggles.GetValueOrDefault("emptied_paths", false)))
                 return Color.Gold;
-            if (analyzer.hasGeneralProblems(mod.Name)&&CoreUtils.toggles.GetValueOrDefault("file_overrides", false))
+            if (analyzer.hasGeneralProblems(mod.Name,p=>p is FileOverride) && CoreUtils.toggles.GetValueOrDefault("file_overrides", false))
+                return Color.Blue;
+            if (analyzer.isCausedByGeneralProblems(mod.Name) && CoreUtils.toggles.GetValueOrDefault("file_overrides", false))
                 return Color.LightBlue;
+
+
             return base.GetModColor(mod);
         }
 

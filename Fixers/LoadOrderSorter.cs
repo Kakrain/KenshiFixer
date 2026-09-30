@@ -357,7 +357,7 @@ namespace KenshiFixer.Fixers
                 if (re == null)
                     continue;
 
-                foreach (var dependency in re.getDependencies() ?? Enumerable.Empty<string>())
+                foreach (var dependency in re.getDependenciesAsList())
                 {
                     if (string.IsNullOrEmpty(dependency) ||
                         baseGameMods.Contains(dependency) ||

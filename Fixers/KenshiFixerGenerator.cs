@@ -23,7 +23,7 @@ namespace KenshiFixer.Fixers
 
         public KenshiFixerGenerator()
         {
-            RE = new ReverseEngineer();
+            RE = new ReverseEngineer(TEMPLATE_NAME+".mod");
             LoadTemplate();
             AddCrashMapping("SQUAD_TEMPLATE", "faction", "FACTION");
             AddCrashMapping("SQUAD_TEMPLATE", "leader", "CHARACTER");
@@ -47,7 +47,7 @@ namespace KenshiFixer.Fixers
         {
             fallbackTemplates.Clear();
 
-            foreach (ModRecord record in RE.modData.Records!)
+            foreach (ModRecord record in RE.modData.GetRecords())
             {
                 int type = record.getRecordTypeCode();
 
@@ -59,7 +59,7 @@ namespace KenshiFixer.Fixers
         }
         private void LoadTemplate()
         {
-            RE = new ReverseEngineer();
+            RE = new ReverseEngineer(TEMPLATE_NAME+".mod");
             string exeDir = AppContext.BaseDirectory;
             string fixTemplatePath = Path.Combine(
                 exeDir,
@@ -77,11 +77,10 @@ namespace KenshiFixer.Fixers
 
             ReverseEngineer? re = RERepository.GetReverseEngineer(modname);
 
-            if (re == null || re.modData?.Records == null)
+            if (re == null || re.modData?.Count== 0)
                 return false;
 
-            culprit = re.modData.Records.Find(
-                r => r.StringId == problem.RecordId);
+            culprit = re.modData!.GetRecordByStringId(problem.RecordId);
 
             if (culprit == null)
             {
@@ -116,6 +115,12 @@ namespace KenshiFixer.Fixers
 
         private void SolveMissingReference(MissingReference problem, ModRecord culprit)
         {
+            if (culprit.ExtraDataFields == null || !culprit.ExtraDataFields.ContainsKey(problem.Category))
+            {
+                CoreUtils.Print("Warning category not found");
+                return;
+            }
+
             int[] vars = culprit.ExtraDataFields[problem.Category][problem.StringId];
 
             ModRecord fixedRecord = RE.EnsureRecordExists(culprit);
@@ -140,6 +145,10 @@ namespace KenshiFixer.Fixers
         private void SolveEmptiedFilename(EmptiedFilename problem,ModRecord culprit)
         {
             ModRecord fixedRecord = RE.EnsureRecordExists(culprit);
+            if (fixedRecord.FilenameFields == null)
+            {
+                fixedRecord.FilenameFields = new Dictionary<string, string>(); 
+            }
             fixedRecord.FilenameFields[problem.key] = problem.validValue;
         }
         private ModRecord getReplacementRecord(string strid,ModRecord fallbackRecord)

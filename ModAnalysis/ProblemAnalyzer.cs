@@ -1,6 +1,7 @@
 ﻿using KenshiCore.Mods;
 using KenshiCore.ReverseEngineering;
 using KenshiCore.UI;
+using KenshiCore.Utilities;
 using KenshiFixer.ModAnalysis;
 using System;
 using System.Collections.Generic;
@@ -24,33 +25,39 @@ namespace KenshiFixer.Mod_Analysis
         {
             ModName = modName;
             Record = record;
-
-            foreach (string category in record.ExtraDataFields.Keys)
+            if (record.ExtraDataFields != null)
             {
-                foreach (string stringid in record.ExtraDataFields[category].Keys)
+                foreach (string category in record.ExtraDataFields.Keys)
                 {
-                    if (ModRecord.IsDeleted(record.ExtraDataFields[category][stringid]))
+                    foreach (string stringid in record.ExtraDataFields[category].Keys)
                     {
-                        if (!DeletedExtraDataIds.ContainsKey(category))
+                        if (ModRecord.IsDeleted(record.ExtraDataFields[category][stringid]))
                         {
-                            DeletedExtraDataIds[category] = new();
+                            if (!DeletedExtraDataIds.ContainsKey(category))
+                            {
+                                DeletedExtraDataIds[category] = new();
+                            }
+                            DeletedExtraDataIds[category].Add(stringid);
                         }
-                        DeletedExtraDataIds[category].Add(stringid);
-                    }
-                    else
-                    {
-                        if (!ExtraDataIds.ContainsKey(category))
+                        else
                         {
-                            ExtraDataIds[category] = new();
+                            if (!ExtraDataIds.ContainsKey(category))
+                            {
+                                ExtraDataIds[category] = new();
+                            }
+                            ExtraDataIds[category].Add(stringid);
                         }
-                        ExtraDataIds[category].Add(stringid);
                     }
                 }
             }
-            foreach (string key in record.FilenameFields.Keys)
+            if (record.FilenameFields != null)
             {
-                Filepaths[key] = record.FilenameFields[key];
+                foreach (string key in record.FilenameFields.Keys)
+                {
+                    Filepaths[key] = record.FilenameFields[key];
+                }
             }
+            
         }
     }
     public class ProblemAnalyzer
@@ -58,6 +65,7 @@ namespace KenshiFixer.Mod_Analysis
         public ProblemAnalyzer() { }
         private Dictionary<string, List<RecordInfo>> collectedInfos = new Dictionary<string, List<RecordInfo>>();
         private Dictionary<string, List<Problem>>? Problems;
+        private Dictionary<string,List<Problem>>? ProblemsByOverriden;
 
         public List <Problem>? GetProblems()
         {
@@ -73,17 +81,22 @@ namespace KenshiFixer.Mod_Analysis
 
             collectedInfos.Clear();
             Problems = null;
+            ProblemsByOverriden = null;
             foreach (string modName in repo._loadOrder)
             {
                 progress.ReportStep($"Analyzing mod: {modName}");
 
                 ReverseEngineer? re;
                 re= repo.GetReverseEngineer(modName);
-
-                if (re == null || re.modData == null || re.modData.Records == null)
+                ModItem? mod = ModRepository.Instance.GetMergedMods().GetValueOrDefault(modName);
+                if(mod==null || CoreUtils.isModAPatch(mod))
+                {
+                    continue;
+                }
+                if (re == null || re.modData == null )
                     continue;
 
-                foreach (ModRecord record in re.modData.Records)
+                foreach (ModRecord record in re.modData.GetRecords())
                 {
                     if (!collectedInfos.TryGetValue(record.StringId, out var infos))
                     {
@@ -101,21 +114,18 @@ namespace KenshiFixer.Mod_Analysis
             ProgressController progress = ProgressController.Instance;
             progress.Initialize(collectedInfos.Count);
             Problems = new Dictionary<string, List<Problem>>();
-
+            ProblemsByOverriden= new Dictionary<string, List<Problem>>();
             foreach (string key in collectedInfos.Keys)
             {
                 progress.ReportStep($"Analyzing Information: {key}");
                 findProblemsInRecord(key);
             }
             FindFileOverrides();
+            FindReKenshi();
             progress.Finish("Analysis complete");
         }
         private void FindFileOverrides()
         {
-            
-
-
-
             var overrides = ModRepository.Instance.FindAssetOverrides();
 
             foreach (var pair in overrides)
@@ -126,6 +136,12 @@ namespace KenshiFixer.Mod_Analysis
                 for (int i = 1; i < mods.Count; i++)
                 {
                     FileOverride problem =new FileOverride(filename,mods[i - 1],mods[i]);
+                    if (!ProblemsByOverriden!.TryGetValue(mods[i - 1], out List<Problem>? ov_problems))
+                    {
+                        ov_problems = new List<Problem>();
+                        ProblemsByOverriden[mods[i - 1]] = ov_problems;
+                    }
+                    ov_problems.Add(problem);
 
                     if (!Problems!.TryGetValue(mods[i], out List<Problem>? problems))
                     {
@@ -134,6 +150,29 @@ namespace KenshiFixer.Mod_Analysis
                     }
 
                     problems.Add(problem);
+                }
+            }
+        }
+        private void FindReKenshi()
+        {
+            foreach (var mod in ModRepository.Instance.Mods.Values)
+            {
+                string? modPath = Path.GetDirectoryName(mod.getModFilePath());
+                if (modPath == null)
+                    continue;
+                foreach (string file in Directory.GetFiles(modPath, "*", SearchOption.AllDirectories))
+                {
+                    string filename = Path.GetFileName(file);
+                    if(filename.Equals("RE_Kenshi.json", StringComparison.OrdinalIgnoreCase))
+                    {
+                        ReKenshi problem = new ReKenshi(mod.Name);
+                        if (!Problems!.TryGetValue(mod.Name, out List<Problem>? problems))
+                        {
+                            problems = new List<Problem>();
+                            Problems[mod.Name] = problems;
+                        }
+                        problems.Add(problem);
+                    }
                 }
             }
         }
@@ -232,15 +271,36 @@ namespace KenshiFixer.Mod_Analysis
             }
             return result.ToString();
         }
+        public string GetGeneralProblemsCausedForMod(string modName, Predicate<Problem>? condition = null)
+        {
+            if (ProblemsByOverriden == null || !ProblemsByOverriden.ContainsKey(modName))
+            {
+                return "";
+            }
+            StringBuilder result = new StringBuilder();
+            List<Problem> var_problems = ProblemsByOverriden![modName];
+            if (condition != null)
+            {
+                var_problems = var_problems.Where(p => condition(p)).ToList();
+            }
+            foreach (Problem p in ProblemsByOverriden![modName])
+            {
+                if (p.involvedMods.Contains(modName))
+                {
+                    result.AppendLine(p.ToString());
+                }
+            }
+            return result.ToString();
+        }
         public string GetProblemsForMod(string modName, Predicate<Problem>? condition=null)
         {
             if (Problems == null)
                 return "Problems have not been analyzed yet. Click on Search Problems first.";
             ReverseEngineer? re = ReverseEngineerRepository.Instance.GetReverseEngineer(modName);
-            if (re == null || re.modData == null || re.modData.Records == null)
+            if (re == null || re.modData == null)
                 return "Empty mod data.";
             StringBuilder result = new StringBuilder();
-            foreach (ModRecord record in re.modData.Records)
+            foreach (ModRecord record in re.modData.GetRecords())
             {
                 if (Problems!.TryGetValue(record.StringId, out var problems))
                 {
@@ -273,9 +333,9 @@ namespace KenshiFixer.Mod_Analysis
             if (Problems == null)
                 return false;
             ReverseEngineer? re = ReverseEngineerRepository.Instance.GetReverseEngineer(modName);
-            if (re == null || re.modData == null || re.modData.Records == null)
+            if (re == null || re.modData == null)
                 return false;
-            foreach (ModRecord record in re.modData.Records)
+            foreach (ModRecord record in re.modData.GetRecords())
             {
                 if (Problems!.ContainsKey(record.StringId)&& Problems![record.StringId].Any(p => condition(p)&&p.involvedMods.Contains(modName)))
                 {
@@ -284,11 +344,21 @@ namespace KenshiFixer.Mod_Analysis
             }
             return false;
         }
-        public bool hasGeneralProblems(string modName)
+        public bool hasGeneralProblems(string modName, Predicate<Problem>? condition=null)
         {
             if (Problems == null)
                 return false;
-            if (!Problems!.ContainsKey(modName))
+            if (Problems!.ContainsKey(modName)&& (condition == null || Problems![modName].Any(p=>condition(p))))
+            {
+                return true;
+            }
+            return false;
+        }
+        public bool isCausedByGeneralProblems(string modName)
+        {
+            if (ProblemsByOverriden == null)
+                return false;
+            if (!ProblemsByOverriden!.ContainsKey(modName))
             {
                 return false;
             }
