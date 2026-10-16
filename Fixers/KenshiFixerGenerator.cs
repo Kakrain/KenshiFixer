@@ -5,6 +5,7 @@ using KenshiCore.Utilities;
 using KenshiFixer.ModAnalysis;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -16,15 +17,22 @@ namespace KenshiFixer.Fixers
     {
         public const string TEMPLATE_NAME = "-KenshiFixer_Fix-";
         private ReverseEngineer RE;
+        private ReverseEngineer templateRE;
         private ReverseEngineerRepository RERepository = ReverseEngineerRepository.Instance;
         private Dictionary<(int, string), int> can_crash_registry = new();
         private Dictionary<string, ModRecord> replacements = new Dictionary<string, ModRecord>();
         private Dictionary<int, ModRecord> fallbackTemplates = new();
+        
+
 
         public KenshiFixerGenerator()
         {
             RE = new ReverseEngineer(TEMPLATE_NAME+".mod");
-            LoadTemplate();
+            RE.LoadModFile(Path.Combine(AppContext.BaseDirectory, "templates", "empty"));
+            templateRE = LoadTemplate();
+
+
+            LoadFallbackTemplates(templateRE);
             AddCrashMapping("SQUAD_TEMPLATE", "faction", "FACTION");
             AddCrashMapping("SQUAD_TEMPLATE", "leader", "CHARACTER");
             AddCrashMapping("SQUAD_TEMPLATE", "squad", "CHARACTER");
@@ -43,11 +51,11 @@ namespace KenshiFixer.Fixers
         {
             can_crash_registry[(ModRecord.getRecordTypeInt(sourceType), category)] = ModRecord.getRecordTypeInt(targetType);
         }
-        private void LoadFallbackTemplates()
+        private void LoadFallbackTemplates(ReverseEngineer template)
         {
             fallbackTemplates.Clear();
 
-            foreach (ModRecord record in RE.modData.GetRecords())
+            foreach (ModRecord record in template.modData.GetRecords())
             {
                 int type = record.getRecordTypeCode();
 
@@ -57,17 +65,13 @@ namespace KenshiFixer.Fixers
                 }
             }
         }
-        private void LoadTemplate()
+        private ReverseEngineer LoadTemplate()
         {
-            RE = new ReverseEngineer(TEMPLATE_NAME+".mod");
+            ReverseEngineer temp = new ReverseEngineer(TEMPLATE_NAME+".mod");
             string exeDir = AppContext.BaseDirectory;
-            string fixTemplatePath = Path.Combine(
-                exeDir,
-                "FixTemplates",
-                TEMPLATE_NAME
-            );
-            RE.LoadModFile(fixTemplatePath);
-            LoadFallbackTemplates();
+            string fixTemplatePath = Path.Combine(exeDir,"FixTemplates",TEMPLATE_NAME);
+            temp.LoadModFile(fixTemplatePath);
+            return temp;
         }
         private bool TryGetCulprit(RecordProblem problem, out ModRecord? culprit)
         {
@@ -123,17 +127,18 @@ namespace KenshiFixer.Fixers
 
             int[] vars = culprit.ExtraDataFields[problem.Category][problem.StringId];
 
-            ModRecord fixedRecord = RE.EnsureRecordExists(culprit);
-
-            // Every missing reference gets removed.
-            fixedRecord.DeleteExtraData(problem.Category, problem.StringId);
+            
 
             // Some references additionally require a fallback.
             if (!can_crash_registry.TryGetValue((culprit.getRecordTypeCode(), problem.Category),out int fallbackType))
             {
                 return;
             }
+            ModRecord fixedRecord = RE.EnsureRecordExists(culprit);
 
+
+            // Every missing reference gets removed.
+            fixedRecord.DeleteExtraData(problem.Category, problem.StringId);
             if (!fallbackTemplates.TryGetValue(fallbackType,out ModRecord? fallbackRecord))
             {
                 CoreUtils.Print($"No fallback template for record type " +$"{ModRecord.getRecordTypeName(fallbackType)}.");
@@ -185,8 +190,7 @@ namespace KenshiFixer.Fixers
 
         public void Save()
         {
-            string modsRoot = ModManager.gamedirModsPath
-                ?? throw new InvalidOperationException("Mods directory not set");
+            string modsRoot = ModManager.gamedirModsPath ?? throw new InvalidOperationException("Mods directory not set");
 
             string fixFolder = Path.Combine(modsRoot, $"{TEMPLATE_NAME}");
             string fixModFile = Path.Combine(fixFolder, $"{TEMPLATE_NAME}.mod");

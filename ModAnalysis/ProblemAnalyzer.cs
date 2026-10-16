@@ -20,7 +20,7 @@ namespace KenshiFixer.Mod_Analysis
         public Dictionary<string, List<string>> DeletedExtraDataIds { get; set; } = new Dictionary<string, List<string>>();
         public Dictionary<string, string> Filepaths { get; set; } = new Dictionary<string, string>();
 
-
+        
         public RecordInfo(string modName, ModRecord record)
         {
             ModName = modName;
@@ -66,7 +66,17 @@ namespace KenshiFixer.Mod_Analysis
         private Dictionary<string, List<RecordInfo>> collectedInfos = new Dictionary<string, List<RecordInfo>>();
         private Dictionary<string, List<Problem>>? Problems;
         private Dictionary<string,List<Problem>>? ProblemsByOverriden;
-
+        private HashSet<int> FILEPATH_RESTORATION_WHITELIST = new HashSet<int>
+        {
+            ModRecord.getRecordTypeInt("SQUAD_TEMPLATE"),
+            ModRecord.getRecordTypeInt("RACE"),
+            ModRecord.getRecordTypeInt("CROSSBOW"),
+            ModRecord.getRecordTypeInt("ANIMATION_FILE"),
+            ModRecord.getRecordTypeInt("ARMOUR"),
+            ModRecord.getRecordTypeInt("WEAPON"),
+            ModRecord.getRecordTypeInt("ATTACHMENT"),
+            ModRecord.getRecordTypeInt("CHARACTER"),
+        };
         public List <Problem>? GetProblems()
         {
             if (Problems == null)
@@ -219,6 +229,10 @@ namespace KenshiFixer.Mod_Analysis
                 foreach (string key in info.Filepaths.Keys)
                 {
                     string value = info.Filepaths[key];
+                    if(!FILEPATH_RESTORATION_WHITELIST.Contains(info.Record.getRecordTypeCode()))
+                    {
+                        continue;
+                    }
 
                     if (!currentFilepaths.TryGetValue(key, out string? previousValue))
                     {
@@ -226,8 +240,7 @@ namespace KenshiFixer.Mod_Analysis
                         continue;
                     }
 
-                    if (string.IsNullOrEmpty(value) &&
-                        !string.IsNullOrEmpty(previousValue))
+                    if (string.IsNullOrEmpty(value) &&!string.IsNullOrEmpty(previousValue))
                     {
                         EmptiedFilename problem =new EmptiedFilename(info, key, previousValue);
 

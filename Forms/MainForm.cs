@@ -277,7 +277,7 @@ namespace KenshiFixer.Forms
                 return Color.Blue;
             if (analyzer.isCausedByGeneralProblems(mod.Name) && CoreUtils.toggles.GetValueOrDefault("file_overrides", false))
                 return Color.LightBlue;
-
+        
 
             return base.GetModColor(mod);
         }
