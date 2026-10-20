@@ -161,7 +161,7 @@ namespace KenshiFixer.Fixers
             if (!replacements.TryGetValue(strid, out ModRecord? cloned))
             {
                 cloned = RE.CloneRecord(fallbackRecord, 1)[0];
-                cloned.Name = strid + "_fallback_by_KenshiFixer";
+                cloned.SetName(strid + "_fallback_by_KenshiFixer",RE.modData.Header!.FileType);
                 replacements[strid] = cloned;
             }
             return cloned;
